@@ -22,19 +22,22 @@ function xaiOauthResponses(overrides: Partial<OcxProviderConfig> = {}): OcxProvi
 }
 
 function buildBody(provider: OcxProviderConfig, rawBody: Record<string, unknown>): Record<string, unknown> {
+  const requestBody = typeof rawBody.model === "string" ? rawBody : { model: MODEL, ...rawBody };
+  const before = structuredClone(requestBody);
   const built = createResponsesPassthroughAdapter(provider).buildRequest({
-    modelId: typeof rawBody.model === "string" ? rawBody.model : MODEL,
+    modelId: typeof requestBody.model === "string" ? requestBody.model : MODEL,
     context: { messages: [] },
     stream: true,
     options: {},
     previousResponseId: typeof rawBody.previous_response_id === "string"
       ? rawBody.previous_response_id
       : undefined,
-    _rawBody: { model: MODEL, ...rawBody },
+    _rawBody: requestBody,
   } as Parameters<ReturnType<typeof createResponsesPassthroughAdapter>["buildRequest"]>[0], {
     headers: new Headers(),
   });
   if (built instanceof Promise) throw new Error("Expected a synchronous Responses request builder");
+  expect(requestBody).toEqual(before);
   return JSON.parse(String(built.body)) as Record<string, unknown>;
 }
 
